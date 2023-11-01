@@ -7,13 +7,21 @@ export const getAllInvoices = async () => {
       include: {
         prompt: true,
       },
+      orderBy: {
+        createdAt: "desc",
+      }
     });
 
     for (const invoice of invoices) {
       const userId = invoice?.userId;
       if (userId) {
-        const user = await clerkClient.users.getUser(userId);
-        invoice.user = user;
+        try {
+          const user = await clerkClient.users.getUser(userId);
+          invoice.user = user;
+        } catch (userError: any) {
+          console.log(`User with ID ${userId} not found: ${userError.message}`);
+          invoice.user = null;
+        }
       }
     }
 

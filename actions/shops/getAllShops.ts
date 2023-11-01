@@ -3,14 +3,19 @@ import { clerkClient } from "@clerk/nextjs";
 
 export const getAllShops = async () => {
   try {
-    const shops:any = await prisma.shops.findMany();
+    const shops: any = await prisma.shops.findMany();
 
     for (const shop of shops) {
       const userId = shop?.userId;
 
       if (userId) {
-        const user = await clerkClient.users.getUser(userId);
-        shop.user = user;
+        try {
+          const user = await clerkClient.users.getUser(userId);
+          shops.user = user;
+        } catch (userError: any) {
+          console.log(`User with ID ${userId} not found: ${userError.message}`);
+          shops.user = null;
+        }
       }
     }
 

@@ -5,15 +5,37 @@ import { Box, Modal } from "@mui/material";
 import { BsPencil } from "react-icons/bs";
 import { IoMdPaper } from "react-icons/io";
 import { styles } from "@/utils/styles";
+import { format } from "timeago.js";
+import { updateWithDrawStatus } from "@/actions/withdraws/updateWithdrawStatus";
+import toast from "react-hot-toast";
 
-const AllWithdrawRequests = () => {
+const AllWithdrawRequests = ({ withdraws }: { withdraws: any }) => {
   const [open, setOpen] = useState(false);
   const [withdrawModal, setWithdrawModal] = useState(false);
   const [status, setStatus] = useState("");
+  const [activeShop, setActiveShop] = useState<any>();
+  const [withdraw, setWithdraw] = useState<any>();
+
+  const handleUpdateStatus = async () => {
+    if (status === "") {
+      return;
+    } else {
+      await updateWithDrawStatus({ id: withdraw?.id, status }).then(
+        (res: any) => {
+          if (res) {
+            toast.success("Status updated successfully!");
+            window.location.reload();
+          } else {
+            toast.error("Something went wrong!");
+          }
+        }
+      );
+    }
+  };
 
   const columns = [
     { field: "id", headerName: "ID", flex: 0.3 },
-    { field: "name", headerName: "Name", flex: 0.5 },
+    { field: "name", headerName: "Name", flex: 0.3 },
     { field: "email", headerName: "Email", flex: 0.5 },
     { field: "amount", headerName: "Amount", flex: 0.5 },
     { field: "created_at", headerName: "Created At", flex: 0.5 },
@@ -25,9 +47,12 @@ const AllWithdrawRequests = () => {
         return (
           <div
             className="w-full flex items-center"
-            onClick={() => setOpen(!open)}
+            onClick={() => {
+              setOpen(!open);
+              setWithdraw(params.row);
+            }}
           >
-            <span>Pending</span>
+            <span>{params?.row.status}</span>
             <BsPencil className="text-sm cursor-pointer ml-2" />
           </div>
         );
@@ -42,7 +67,10 @@ const AllWithdrawRequests = () => {
           <div className="w-[60%] flex justify-center">
             <IoMdPaper
               className="text-xl cursor-pointer"
-              onClick={() => setWithdrawModal(!withdrawModal)}
+              onClick={() => {
+                setWithdrawModal(!withdrawModal);
+                setActiveShop(params.row.shop);
+              }}
             />
           </div>
         );
@@ -50,16 +78,20 @@ const AllWithdrawRequests = () => {
     },
   ];
 
-  const rows = [
-    {
-      id: "123456",
-      name: "John Doe",
-      email: "support@becodemy.com",
-      status: "pending",
-      amount: "$100",
-      created_at: "2022-01-01",
-    },
-  ];
+  const rows: any = [];
+
+  withdraws &&
+    withdraws.forEach((withdraw: any) => {
+      rows.push({
+        id: withdraw.id,
+        name: withdraw?.shop.name,
+        email: withdraw?.shop.emailAddress,
+        status: withdraw?.status,
+        amount: "US$" + withdraw.amount,
+        created_at: format(withdraw.createdAt),
+        shop: withdraw?.shop,
+      });
+    });
 
   return (
     <>
@@ -131,6 +163,7 @@ const AllWithdrawRequests = () => {
             <select
               name=""
               id=""
+              value={withdraw?.status}
               className={`${styles.input} !mt-6 bg-transparent border rounded p-2`}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -138,7 +171,10 @@ const AllWithdrawRequests = () => {
               <option value="Sent">Sent</option>
             </select>
             <br />
-            <button className={`${styles.button} bg-[#3f4cda] my-6 !h-[35px]`}>
+            <button
+              className={`${styles.button} bg-[#3f4cda] my-6 !h-[35px]`}
+              onClick={handleUpdateStatus}
+            >
               Submit
             </button>
           </Box>
@@ -158,14 +194,22 @@ const AllWithdrawRequests = () => {
             </h1>
             <br />
             <p className={`${styles.label}`}>
-              Account Holder Name: Shahriar Sajeeb
+              Account Holder Name: {activeShop?.bank?.account_holder_name}
             </p>
-            <p className={`${styles.label}`}>Bank Name: Bank of USA</p>
-            <p className={`${styles.label}`}>Account Number: 1234567890</p>
-            <p className={`${styles.label}`}>Routing Number: 123456</p>
-            <p className={`${styles.label}`}>Swift Code: ABCDEFG</p>
             <p className={`${styles.label}`}>
-              Bank Address: 123 Main St, Anytown, USA
+              Bank Name: {activeShop?.bank?.bank_name}
+            </p>
+            <p className={`${styles.label}`}>
+              Account Number: {activeShop?.bank?.account_number}
+            </p>
+            <p className={`${styles.label}`}>
+              Routing Number: {activeShop?.bank?.routing_number}
+            </p>
+            <p className={`${styles.label}`}>
+              Swift Code: {activeShop?.bank?.swift_code}
+            </p>
+            <p className={`${styles.label}`}>
+              Bank Address: {activeShop?.bank?.bank_address}
             </p>
           </Box>
         </Modal>
